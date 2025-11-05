@@ -1,0 +1,19 @@
+# MT5 Smart Optimizer v2 - Requirements
+# Python 3.8+ required
+
+# Core optimization framework
+optuna>=3.0.0,<4.0.0
+
+# Process management (optional but recommended)
+psutil>=5.9.0
+
+# YAML configuration support (optional)
+PyYAML>=6.0
+
+# Data analysis and visualization (optional)
+pandas>=1.5.0
+numpy>=1.23.0
+matplotlib>=3.6.0
+
+# For future database storage support (optional)
+# sqlalchemy>=2.0.0
