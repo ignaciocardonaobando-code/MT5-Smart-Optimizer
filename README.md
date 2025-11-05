@@ -82,6 +82,75 @@ El optimizador evaluará las siguientes variables para encontrar la mejor combin
 
 ---
 
+## 💾 Instalación
+
+### 1. Requisitos del Sistema
+
+- **Sistema Operativo**: Windows 10/11 (MetaTrader 5 es exclusivo de Windows)
+- **Python**: 3.8 o superior
+- **MetaTrader 5**: Instalado y configurado
+- **Git**: Para clonar el repositorio (opcional)
+
+### 2. Clonar el Repositorio
+
+```bash
+git clone https://github.com/ignaciocardonaobando-code/MT5-Smart-Optimizer.git
+cd MT5-Smart-Optimizer
+```
+
+### 3. Crear Entorno Virtual (Recomendado)
+
+```bash
+# Crear entorno virtual
+python -m venv venv
+
+# Activar entorno virtual
+# En Windows:
+venv\\Scripts\\activate
+
+# En PowerShell:
+venv\\Scripts\\Activate.ps1
+```
+
+### 4. Instalar Dependencias
+
+```bash
+# Instalar dependencias básicas (requeridas)
+pip install -r requirements.txt
+
+# O instalar manualmente:
+pip install optuna psutil PyYAML
+
+# Dependencias opcionales para análisis:
+pip install pandas numpy matplotlib
+```
+
+### 5. Verificar Instalación
+
+```bash
+python optimizer_v2.py --help
+```
+
+Deberías ver la ayuda del optimizador con todas las opciones disponibles.
+
+### 6. Configurar MetaTrader 5
+
+1. **Ubicar tu terminal MT5**:
+   - Ejemplo: `C:\\Program Files\\MetaTrader 5\\terminal64.exe`
+
+2. **Obtener el Hash de tu terminal**:
+   - Ve a: `C:\\Users\\TU_USUARIO\\AppData\\Roaming\\MetaQuotes\\Terminal\\`
+   - Copia el nombre de la carpeta con hash (ejemplo: `90A4D8F274B2E2A5D8E3F1C2B9A7E6D4`)
+
+3. **Copiar archivos de la estrategia**:
+   - Copia `Estrategia_Boll_Stoch_ATR_Agresiva_VFinal.ex5` a:
+     `C:\\Users\\TU_USUARIO\\AppData\\Roaming\\MetaQuotes\\Terminal\\TU_HASH\\MQL5\\Experts\\`
+   
+   - Copia `so_report.mqh` a:
+     `C:\\Users\\TU_USUARIO\\AppData\\Roaming\\MetaQuotes\\Terminal\\TU_HASH\\MQL5\\Include\\`
+
+---
+
 ## 🚀 Cómo Usar
 
 ### Requisitos Previos
