@@ -1,0 +1,126 @@
+{
+  "_comment": "MT5 Smart Optimizer v2 - Configuration Template",
+  "_version": "2.0",
+  "_description": "Complete configuration file with all available parameters. Remove '_comment' fields before using.",
+
+  "mt5": {
+    "_comment": "MetaTrader 5 configuration",
+    "terminal_path": "C:\\\\Program Files\\\\MetaTrader 5\\\\terminal64.exe",
+    "_terminal_path_help": "Full path to your MT5 executable",
+    
+    "terminal_hash": "90A4D8F274B2E2A5D8E3F1C2B9A7E6D4",
+    "_terminal_hash_help": "Hash folder name found in: C:\\\\Users\\\\YOUR_USER\\\\AppData\\\\Roaming\\\\MetaQuotes\\\\Terminal\\\\",
+    
+    "datadir": null,
+    "_datadir_help": "Optional: Custom data directory. Leave null for default."
+  },
+
+  "test": {
+    "_comment": "Backtesting configuration",
+    
+    "symbol": "EURUSD",
+    "_symbol_help": "Trading pair to test (e.g., EURUSD, GBPUSD, USDJPY)",
+    
+    "timeframe": "H4",
+    "_timeframe_help": "Chart timeframe: M30, H1, H2, H3, H4, H6, D1",
+    
+    "model": 1,
+    "_model_help": "0=Every tick, 1=1 minute OHLC, 2=Open prices only, 3=Math calculations, 4=Every tick based on real ticks",
+    
+    "from": "2023.01.01",
+    "_from_help": "Start date in format: YYYY.MM.DD or YYYY-MM-DD",
+    
+    "to": "2024.12.31",
+    "_to_help": "End date in format: YYYY.MM.DD or YYYY-MM-DD",
+    
+    "deposit": 10000,
+    "_deposit_help": "Initial deposit amount in USD",
+    
+    "leverage": 100,
+    "_leverage_help": "Leverage ratio: 1, 10, 50, 100, 200, 500"
+  },
+
+  "ea": {
+    "_comment": "Expert Advisor configuration",
+    
+    "name": "Estrategia_Boll_Stoch_ATR_Agresiva_VFinal.ex5",
+    "_name_help": "EA filename (must be in MQL5\\\\Experts folder)",
+    
+    "inputs": {
+      "_comment": "Fixed parameters for all tests",
+      
+      "lot_size": 0.10,
+      "_lot_size_help": "Lot size for trades (0.01 - 1.00)",
+      
+      "atrMultiplierSL": 2.0,
+      "_atrMultiplierSL_help": "Stop Loss = ATR * this multiplier",
+      
+      "atrMultiplierTP": 3.0,
+      "_atrMultiplierTP_help": "Take Profit = ATR * this multiplier",
+      
+      "atrMultiplierTrailing": 1.5,
+      "_atrMultiplierTrailing_help": "Trailing Stop = ATR * this multiplier",
+      
+      "margen_cruce": 5.0,
+      "_margen_cruce_help": "Minimum difference between %K and %D",
+      
+      "solo_una_orden_por_simbolo": true,
+      "_solo_una_orden_por_simbolo_help": "Allow only one order per symbol",
+      
+      "solo_una_orden_por_cuenta": true,
+      "_solo_una_orden_por_cuenta_help": "Allow only one order per account"
+    }
+  },
+
+  "search": {
+    "_comment": "Optuna optimization configuration (optional)",
+    "_note": "Remove this entire 'search' block if you only want to run single tests",
+    
+    "sampler": "TPE",
+    "_sampler_help": "Optuna sampler: TPE, RandomSampler, GridSampler, CmaEsSampler",
+    
+    "space": {
+      "_comment": "Parameter search space for optimization",
+      "_format": "Each parameter is [type, min, max] or [type, [choices]]",
+      
+      "periodoBB": ["int", 10, 30],
+      "_periodoBB_help": "Bollinger Bands period range",
+      
+      "desvBB": ["float", 1.5, 3.0],
+      "_desvBB_help": "Bollinger Bands standard deviation range",
+      
+      "kPeriod": ["int", 5, 21],
+      "_kPeriod_help": "Stochastic %K period range",
+      
+      "dPeriod": ["int", 3, 10],
+      "_dPeriod_help": "Stochastic %D period range",
+      
+      "slowing": ["int", 1, 5],
+      "_slowing_help": "Stochastic slowing range",
+      
+      "atrMultiplierSL": ["float", 1.0, 3.0],
+      "_atrMultiplierSL_help": "Stop Loss ATR multiplier range",
+      
+      "atrMultiplierTP": ["float", 2.0, 5.0],
+      "_atrMultiplierTP_help": "Take Profit ATR multiplier range",
+      
+      "atrMultiplierTrailing": ["float", 1.0, 2.5],
+      "_atrMultiplierTrailing_help": "Trailing Stop ATR multiplier range",
+      
+      "margen_cruce": ["float", 3.0, 10.0],
+      "_margen_cruce_help": "Minimum K/D difference range",
+      
+      "timeframe": ["choice", ["M30", "H1", "H2", "H3", "H4", "H6"]],
+      "_timeframe_help": "Timeframe choices for optimization (overrides test.timeframe)"
+    }
+  },
+
+  "_examples": {
+    "_comment": "Usage examples (remove this block before using)",
+    
+    "smoke_test": "python optimizer_v2.py --config config.json --single-run",
+    "optimization": "python optimizer_v2.py --config config.json --n-trials 50 --n-jobs 2",
+    "with_auto_close": "python optimizer_v2.py --config config.json --n-trials 100 --auto-close",
+    "custom_guard": "python optimizer_v2.py --config config.json --single-run --guard-sec 600"
+  }
+}
