@@ -1,0 +1,46 @@
+{
+  "_comment": "Configuración Rápida - Optimización de 10-20 trials para pruebas rápidas",
+  
+  "mt5": {
+    "terminal": "C:/Program Files/MetaTrader 5/terminal64.exe",
+    "login": 12345678,
+    "password": "tu_password",
+    "server": "TuBroker-Demo"
+  },
+  
+  "test": {
+    "symbol": "EURUSD",
+    "timeframe": "H1",
+    "from_date": "2024-10-01",
+    "to_date": "2024-11-05",
+    "deposit": 10000,
+    "leverage": 100,
+    "optimization_criterion": "balance"
+  },
+  
+  "ea": {
+    "name": "Estrategia_Boll_Stoch_ATR_Agresiva_VFinal",
+    "path": "Experts/Estrategia_Boll_Stoch_ATR_Agresiva_VFinal.ex5",
+    "parameters": {
+      "BBPeriod": {"min": 15, "max": 30, "step": 5},
+      "BBDeviation": {"min": 1.5, "max": 2.5, "step": 0.5},
+      "StochK": {"min": 10, "max": 20, "step": 2},
+      "StochD": {"min": 3, "max": 5, "step": 1},
+      "ATRPeriod": {"min": 10, "max": 20, "step": 5}
+    }
+  },
+  
+  "optimizer": {
+    "n_trials": 10,
+    "timeout": 600,
+    "n_jobs": 2,
+    "sampler": "TPE",
+    "pruner": "MedianPruner"
+  },
+  
+  "output": {
+    "save_study": true,
+    "study_name": "rapida_eurusd_h1",
+    "results_file": "results/rapida_results.json"
+  }
+}
