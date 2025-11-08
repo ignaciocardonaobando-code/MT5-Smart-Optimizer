@@ -15,14 +15,22 @@ class OptimizerLogger:
         self.log_dir = log_dir
         self.logger = logging.getLogger(name)
         self.logger.setLevel(level)
-        
+        self.logger.propagate = False
+
         # Crear directorio de logs si no existe
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
-        
-        # Evitar duplicación de handlers
-        if not self.logger.handlers:
-            self._setup_handlers()
+
+        # Reiniciar handlers para asegurar configuración consistente
+        if self.logger.handlers:
+            for handler in list(self.logger.handlers):
+                self.logger.removeHandler(handler)
+                try:
+                    handler.close()
+                except Exception:
+                    pass
+
+        self._setup_handlers()
     
     def _setup_handlers(self):
         """Configura handlers para archivo y consola"""
