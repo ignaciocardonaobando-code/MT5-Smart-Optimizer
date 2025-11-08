@@ -85,7 +85,7 @@ class EaCfg:
 @dataclass
 class SearchCfg:
     space: Dict[str, Any] = field(default_factory=dict)
-    sampler: Optional[str] = None
+    sampler: Optional[Any] = None
 
 @dataclass
 class Config:
@@ -294,7 +294,8 @@ def write_ini(cfg: Config, set_name: str, ini_path: Path, report_path: Path) -> 
     ini.append("Optimization=0")
     ini.append("ReportReplace=1")
     ini.append("ShutdownTerminal=1")
-    ini.append(f"Report=\"{str(report_path).replace('\\', '/')}\"")
+    report_value = str(report_path).replace("\\", "/")
+    ini.append(f'Report="{report_value}"')
     write_text(ini_path, "\n".join(ini) + "\n")
 
 
@@ -548,14 +549,104 @@ def suggest_from_space(trial, space: Dict[str, Any]) -> Dict[str, Any]:
             raise RuntimeError(f"Tipo no soportado en search.space para {k}: {kind}")
     return params
 
-def run_optuna(cfg: Config, exe_path: str, guard_sec: int, n_trials: int, n_jobs: int, auto_close: bool) -> None:
+def _resolve_sampler(search_cfg: SearchCfg):
+    """Construye el sampler de Optuna según la configuración."""
     try:
-        import optuna  # type: ignore
-        from optuna.samplers import TPESampler  # type: ignore
+        import optuna  # type: ignore  # noqa: F401
+        from optuna.samplers import GridSampler, TPESampler  # type: ignore
     except Exception as e:
         raise RuntimeError("Optuna no está instalado. pip install optuna") from e
 
-    sampler = TPESampler(seed=42)
+    cfg_sampler = search_cfg.sampler
+    if cfg_sampler is None:
+        return TPESampler(seed=42)
+
+    def _normalize_grid_space(raw: Dict[str, Any]) -> Dict[str, list[Any]]:
+        grid_space: Dict[str, list[Any]] = {}
+        for key, values in raw.items():
+            if isinstance(values, str) or not isinstance(values, (list, tuple, set)):
+                raise RuntimeError(
+                    f"GridSampler requiere un iterable de opciones en search.sampler.search_space para '{key}'."
+                )
+            if not values:
+                raise RuntimeError(
+                    f"GridSampler requiere al menos una opción para '{key}'."
+                )
+            grid_space[key] = list(values)
+        if not grid_space:
+            raise RuntimeError("GridSampler requiere al menos una variable en search.sampler.search_space.")
+        return grid_space
+
+    def _default_grid_space() -> Dict[str, list[Any]]:
+        if not search_cfg.space:
+            raise RuntimeError(
+                "GridSampler requiere que search.space defina variables tipo 'choice'."
+            )
+        grid_space: Dict[str, list[Any]] = {}
+        for key, spec in search_cfg.space.items():
+            if not isinstance(spec, (list, tuple)) or not spec:
+                raise RuntimeError(f"Spec inválida para GridSampler en '{key}'.")
+            kind = spec[0]
+            if kind != "choice":
+                raise RuntimeError(
+                    f"GridSampler requiere 'choice' en search.space para la variable '{key}'."
+                )
+            if len(spec) < 2:
+                raise RuntimeError(f"Spec inválida para GridSampler en '{key}'.")
+            values = spec[1]
+            if isinstance(values, str) or not isinstance(values, (list, tuple, set)):
+                raise RuntimeError(
+                    f"GridSampler requiere un iterable de opciones en search.space para '{key}'."
+                )
+            if not values:
+                raise RuntimeError(
+                    f"GridSampler requiere al menos una opción para '{key}'."
+                )
+            grid_space[key] = list(values)
+        return grid_space
+
+    if isinstance(cfg_sampler, str):
+        sampler_name = cfg_sampler.strip().lower()
+        if sampler_name in {"tpe", "tp", "tpesampler"}:
+            return TPESampler(seed=42)
+        if sampler_name in {"grid", "grid_sampler", "gridsampler"}:
+            return GridSampler(_default_grid_space())
+        raise RuntimeError(f"Sampler desconocido en search.sampler: '{cfg_sampler}'.")
+
+    if isinstance(cfg_sampler, dict):
+        sampler_name = str(
+            cfg_sampler.get("type")
+            or cfg_sampler.get("name")
+            or cfg_sampler.get("sampler")
+            or ""
+        ).strip().lower()
+        if sampler_name in {"tpe", "tp", "tpesampler"}:
+            seed = int(cfg_sampler.get("seed", 42))
+            return TPESampler(seed=seed)
+        if sampler_name in {"grid", "grid_sampler", "gridsampler"}:
+            raw_space = cfg_sampler.get("search_space")
+            if raw_space is None:
+                return GridSampler(_default_grid_space())
+            if not isinstance(raw_space, dict):
+                raise RuntimeError(
+                    "GridSampler requiere que search.sampler.search_space sea un objeto JSON con listas de opciones."
+                )
+            return GridSampler(_normalize_grid_space(raw_space))
+        raise RuntimeError(f"Sampler desconocido en search.sampler: '{cfg_sampler}'.")
+
+    raise RuntimeError(f"Tipo no soportado para search.sampler: {type(cfg_sampler)!r}.")
+
+
+def run_optuna(cfg: Config, exe_path: str, guard_sec: int, n_trials: int, n_jobs: int, auto_close: bool) -> None:
+    try:
+        import optuna  # type: ignore
+    except Exception as e:
+        raise RuntimeError("Optuna no está instalado. pip install optuna") from e
+
+    if cfg.search is None:
+        raise RuntimeError("No hay configuración de 'search' para Optuna.")
+
+    sampler = _resolve_sampler(cfg.search)
     study = optuna.create_study(
         direction="maximize",
         study_name=f"mt5_opt_{cfg.test.symbol}_{cfg.test.timeframe}",
