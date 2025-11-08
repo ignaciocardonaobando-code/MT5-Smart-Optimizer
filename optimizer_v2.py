@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 import re
@@ -441,12 +442,18 @@ def wait_ready_and_report(common_run: Path, local_run: Optional[Path], guard_sec
 
 # ----------------------- Ejecución de un run -----------------------
 def run_single(cfg: Config, exe_path: str, guard_sec: int, auto_close: bool, base_overrides: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[float], str, Path]:
+    run_cfg = copy.deepcopy(cfg)
+    overrides = dict(base_overrides or {})
+    trial_timeframe = overrides.pop("timeframe", None)
+    if trial_timeframe:
+        run_cfg.test.timeframe = str(trial_timeframe)
+
     run_id = now_run_id()
 
     common_root = common_mt5_so_dir()
     common_run = common_root / run_id
     ensure_dir(common_run)
-    local_base = local_agent_files_dir(cfg.mt5.terminal_hash)
+    local_base = local_agent_files_dir(run_cfg.mt5.terminal_hash)
     local_run = (local_base / run_id) if local_base else None
     if local_run:
         ensure_dir(local_run)
@@ -459,29 +466,29 @@ def run_single(cfg: Config, exe_path: str, guard_sec: int, auto_close: bool, bas
         "so_report_enable": 1,
         "so_run_id": run_id,
         "so_out_dir": str(common_root),
-        "so_prefix": f"{cfg.test.symbol}_{cfg.test.timeframe}_{cfg.test.from_}_{cfg.test.to}",
+        "so_prefix": f"{run_cfg.test.symbol}_{run_cfg.test.timeframe}_{run_cfg.test.from_}_{run_cfg.test.to}",
     }
 
-    merged = dict(cfg.ea.inputs or {})
-    if base_overrides:
-        merged.update(base_overrides)
+    merged = dict(run_cfg.ea.inputs or {})
+    if overrides:
+        merged.update(overrides)
     merged = _quantize_params_for_broker(merged)
 
     set_kv = dict(merged)
     set_kv.update(so_block)
     set_lines = build_set_lines(set_kv)
     set_name = f"params_{run_id[-4:]}_{abs(hash(run_id)) & 0xffffffff:08x}.set"
-    set_path = write_set_to_profiles_tester(cfg.mt5.terminal_hash, set_name, set_lines)
+    set_path = write_set_to_profiles_tester(run_cfg.mt5.terminal_hash, set_name, set_lines)
     print(f"INFO Preset desplegado: {str(set_path)}")
-    print(f"INFO Expert relativo: {cfg.ea.name}")
-    print(f"INFO MT5 buscará: {str(experts_root_dir(cfg.mt5.terminal_hash) / cfg.ea.name)}")
+    print(f"INFO Expert relativo: {run_cfg.ea.name}")
+    print(f"INFO MT5 buscará: {str(experts_root_dir(run_cfg.mt5.terminal_hash) / run_cfg.ea.name)}")
 
     reports_root = Path.home() / "runs" / "reports"
     ensure_dir(reports_root)
     report_html = reports_root / f"report_{abs(hash(run_id)) & 0xffffffff:08x}.html"
 
     ini_path = Path.home() / f"{run_id[-4:]}_{abs(hash(run_id)) & 0xffff:04x}.ini"
-    write_ini(cfg, set_path.name, ini_path, report_html)
+    write_ini(run_cfg, set_path.name, ini_path, report_html)
 
     proc = _launch_mt5(exe_path, ini_path)
     pid = proc.pid if proc and proc.pid else -1
@@ -514,10 +521,10 @@ def run_single(cfg: Config, exe_path: str, guard_sec: int, auto_close: bool, bas
         meta = {
             "final_balance": fb,
             "run_id": run_id,
-            "symbol": cfg.test.symbol,
-            "timeframe": cfg.test.timeframe,
-            "from": cfg.test.from_,
-            "to": cfg.test.to,
+            "symbol": run_cfg.test.symbol,
+            "timeframe": run_cfg.test.timeframe,
+            "from": run_cfg.test.from_,
+            "to": run_cfg.test.to,
             "pid": pid,
         }
         write_text(common_run / "meta.json", json.dumps(meta, indent=2))
