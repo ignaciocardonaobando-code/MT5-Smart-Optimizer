@@ -308,19 +308,31 @@ bool SO_ExportReportJSON(const string inputs_json)
    string start_override = SO_StringTrim(so_start_date);
    if(StringLen(start_override)>0)
    {
-      start_str = start_override;
       datetime parsed;
       if(SO_ParseDateTime(start_override, parsed))
+      {
          start_dt = parsed;
+         start_str = TimeToString(start_dt, TIME_DATE|TIME_MINUTES);
+      }
+      else
+      {
+         start_str = start_override;
+      }
    }
 
    string end_override = SO_StringTrim(so_end_date);
    if(StringLen(end_override)>0)
    {
-      end_str = end_override;
       datetime parsed_end;
       if(SO_ParseDateTime(end_override, parsed_end))
+      {
          end_dt = parsed_end;
+         end_str = TimeToString(end_dt, TIME_DATE|TIME_MINUTES);
+      }
+      else
+      {
+         end_str = end_override;
+      }
    }
 
    if(StringLen(start_str)==0)
