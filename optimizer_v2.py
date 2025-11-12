@@ -387,6 +387,56 @@ def _try_parse_final_balance_from_html(html: str) -> Optional[float]:
             pass
     return None
 
+def _override_html_dates_text(html: str, start: str, end: str) -> Tuple[str, bool]:
+    date_pattern = re.compile(r"\d{4}\.\d{2}\.\d{2}")
+    datetime_pattern = re.compile(r"\d{4}\.\d{2}\.\d{2}(?:\s+\d{2}:\d{2})")
+
+    start_date_match = date_pattern.search(start)
+    end_date_match = date_pattern.search(end)
+    if not start_date_match or not end_date_match:
+        return html, False
+
+    start_date = start_date_match.group(0)
+    end_date = end_date_match.group(0)
+
+    start_datetime_match = datetime_pattern.search(start)
+    end_datetime_match = datetime_pattern.search(end)
+    start_datetime = start_datetime_match.group(0) if start_datetime_match else start_date
+    end_datetime = end_datetime_match.group(0) if end_datetime_match else end_date
+
+    range_pattern = re.compile(
+        r"(\d{4}\.\d{2}\.\d{2})(?:\s+\d{2}:\d{2})?\s*-\s*(\d{4}\.\d{2}\.\d{2})(?:\s+\d{2}:\d{2})?"
+    )
+
+    def _replace(match: re.Match[str]) -> str:
+        segment = match.group(0)
+        has_time = bool(re.search(r"\d{2}:\d{2}", segment))
+        left = start_datetime if has_time else start_date
+        right = end_datetime if has_time else end_date
+        return f"{left} - {right}"
+
+    new_html, count = range_pattern.subn(_replace, html)
+    return new_html, bool(count)
+
+def override_report_html_dates(report_html: Path, start: str, end: str) -> None:
+    try:
+        html = read_text(report_html)
+    except Exception:
+        print("WARNING No se pudo escribir HTML")
+        return
+
+    new_html, changed = _override_html_dates_text(html, start, end)
+    if not changed:
+        return
+
+    try:
+        write_text(report_html, new_html)
+    except Exception:
+        print("WARNING No se pudo escribir HTML")
+        return
+
+    print(f"INFO Rango de fechas HTML forzado a {start} - {end}")
+
 def wait_ready_and_report(common_run: Path, local_run: Optional[Path], guard_sec: int, report_html: Path, short_watchdog_sec: int = 120) -> Tuple[bool, Optional[float]]:
     t0 = time.time()
     common_ready = common_run / "_READY"
@@ -497,6 +547,7 @@ def run_single(cfg: Config, exe_path: str, guard_sec: int, auto_close: bool, bas
     pid = proc.pid if proc and proc.pid else -1
 
     ok, fb = wait_ready_and_report(common_run, local_run, guard_sec, report_html, short_watchdog_sec=120)
+    override_report_html_dates(report_html, run_cfg.test.from_, run_cfg.test.to)
 
     if auto_close:
         closed = _stop_pid_gently(pid, timeout=45)
