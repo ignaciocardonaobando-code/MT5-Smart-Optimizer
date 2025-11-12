@@ -468,6 +468,8 @@ def run_single(cfg: Config, exe_path: str, guard_sec: int, auto_close: bool, bas
         "so_run_id": run_id,
         "so_out_dir": str(common_root),
         "so_prefix": f"{run_cfg.test.symbol}_{run_cfg.test.timeframe}_{run_cfg.test.from_}_{run_cfg.test.to}",
+        "so_start_date": run_cfg.test.from_,
+        "so_end_date": run_cfg.test.to,
     }
 
     merged = dict(run_cfg.ea.inputs or {})

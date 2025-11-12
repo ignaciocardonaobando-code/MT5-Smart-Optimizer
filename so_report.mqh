@@ -9,8 +9,10 @@
 #define __SO_REPORT_MQH__
 
 //---------------- Configuración del módulo ----------------
-input string so_run_id     = "";     // acepta subcarpetas, p.ej. PRUEBA_MT5_SO\\r00012
-input bool   export_trades = true;   // exportar trades.csv
+input string so_run_id       = "";   // acepta subcarpetas, p.ej. PRUEBA_MT5_SO\\r00012
+input string so_start_date   = "";   // fecha deseada desde config (opcional)
+input string so_end_date     = "";   // fecha deseada desde config (opcional)
+input bool   export_trades   = true;  // exportar trades.csv
 
 //---------------- Estructuras ----------------
 struct SO_Stats
@@ -107,6 +109,34 @@ bool SO_WriteBoth(const string filename, const string content, uint flags_common
 //---------------- Utilidades JSON/CSV ----------------
 string SO_JsonEscape(string s){ StringReplace(s,"\\","\\\\"); StringReplace(s,"\"","\\\""); StringReplace(s,"\r","\\r"); StringReplace(s,"\n","\\n"); StringReplace(s,"\t","\\t"); return s; }
 string SO_CsvQuote(string s){ StringReplace(s,"\"","\"\""); StringReplace(s,"\r"," "); StringReplace(s,"\n"," "); return "\""+s+"\""; }
+
+string SO_StringTrim(string s){ StringTrimLeft(s); StringTrimRight(s); return s; }
+
+bool SO_ParseDateTime(const string text, datetime &out)
+{
+   string trimmed = SO_StringTrim(text);
+   if(StringLen(trimmed)==0)
+      return false;
+
+   datetime parsed = StringToTime(trimmed);
+   if(parsed>0)
+   {
+      out = parsed;
+      return true;
+   }
+
+   if(StringLen(trimmed)==10 && StringSubstr(trimmed,4,1)=="." && StringSubstr(trimmed,7,1)==".")
+   {
+      datetime alt = StringToTime(trimmed+" 00:00");
+      if(alt>0)
+      {
+         out = alt;
+         return true;
+      }
+   }
+
+   return false;
+}
 
 //---------------- Pings ----------------
 void SO_PingStart(){ SO_WriteBoth("__ping_start","START", FILE_WRITE|FILE_BIN|FILE_COMMON, FILE_WRITE|FILE_BIN); }
@@ -229,6 +259,7 @@ bool SO_ExportReportJSON(const string inputs_json)
    string   symbol_str    = _Symbol;
    string   timeframe_str = EnumToString(Period());
    datetime start_dt=0, end_dt=0;
+   string   start_str="", end_str="";
 
    double initial_deposit=0, total_net_profit=0, gross_profit=0, gross_loss=0,
           profit_factor=0, expected_payoff=0, dd_abs=0, dd_rel_pct=0, final_balance=0;
@@ -274,13 +305,37 @@ bool SO_ExportReportJSON(const string inputs_json)
 
    int build = (int)TerminalInfoInteger(TERMINAL_BUILD);
 
+   string start_override = SO_StringTrim(so_start_date);
+   if(StringLen(start_override)>0)
+   {
+      start_str = start_override;
+      datetime parsed;
+      if(SO_ParseDateTime(start_override, parsed))
+         start_dt = parsed;
+   }
+
+   string end_override = SO_StringTrim(so_end_date);
+   if(StringLen(end_override)>0)
+   {
+      end_str = end_override;
+      datetime parsed_end;
+      if(SO_ParseDateTime(end_override, parsed_end))
+         end_dt = parsed_end;
+   }
+
+   if(StringLen(start_str)==0)
+      start_str = TimeToString(start_dt, TIME_DATE|TIME_MINUTES);
+
+   if(StringLen(end_str)==0)
+      end_str = TimeToString(end_dt, TIME_DATE|TIME_MINUTES);
+
    // Serialización JSON
    string j="{\n";
    j+="  \"run_id\": \""+SO_JsonEscape(so_run_id)+"\",\n";
    j+="  \"symbol\": \""+SO_JsonEscape(symbol_str)+"\",\n";
    j+="  \"timeframe\": \""+SO_JsonEscape(timeframe_str)+"\",\n";
-   j+="  \"start_date\": \""+TimeToString(start_dt, TIME_DATE|TIME_MINUTES)+"\",\n";
-   j+="  \"end_date\": \""+TimeToString(end_dt,   TIME_DATE|TIME_MINUTES)+"\",\n";
+   j+="  \"start_date\": \""+SO_JsonEscape(start_str)+"\",\n";
+   j+="  \"end_date\": \""+SO_JsonEscape(end_str)+"\",\n";
    j+="  \"initial_deposit\": "+DoubleToString(initial_deposit,2)+",\n";
    j+="  \"final_balance\": "+DoubleToString(final_balance,2)+",\n";
    j+="  \"total_net_profit\": "+DoubleToString(total_net_profit,2)+",\n";
