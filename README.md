@@ -148,14 +148,88 @@ Deberías ver la ayuda del optimizador con todas las opciones disponibles.
 
 ### Pasos de Ejecución
 
-1. **Configurar el archivo .json o .yaml** con los parámetros deseados
+1. **Configurar el archivo .json o .yaml** con los parámetros deseados (usa `config_template.json` como base)
 2. **Compilar la estrategia** en MetaEditor (si no está compilada)
-3. **Ejecutar el optimizador**:
+3. **Lanzar un smoke test** para validar conectividad MT5 + presets:
 ```bash
-python optimizer_v2.py --config optuna_h4_fast.json
+python optimizer_v2.py --config test_single_h1_structured.json --single-run --auto-close
 ```
-4. **Revisar los resultados** exportados por `so_report.mqh`
-5. **Aplicar la mejor combinación** encontrada en tu estrategia
+4. **Ejecutar optimizaciones completas** (Optuna) una vez validado el entorno:
+```bash
+python optimizer_v2.py --config optuna_h4_fast.json --n-trials 50 --auto-close
+```
+5. **Revisar los resultados** exportados por `so_report.mqh` (JSON + CSV en `MT5_SO/<run_id>`)
+6. **Aplicar la mejor combinación** encontrada en tu estrategia o reutiliza los presets generados
+
+> 💡 El optimizador fuerza las fechas visibles del reporte HTML usando la utilidad `override_report_html_dates`, asegurando que coincidan con el rango configurado (`test.from`, `test.to`).
+
+### Configuración rápida del optimizador
+
+Los archivos de configuración aceptan los siguientes bloques principales:
+
+```json
+{
+  "mt5": {
+    "terminal_path": "C:/Program Files/MetaTrader 5/terminal64.exe",
+    "terminal_hash": "90A4D8F274B2E2A5D8E3F1C2B9A7E6D4"
+  },
+  "test": {
+    "symbol": "EURUSD",
+    "timeframe": "H1",
+    "model": 0,
+    "from": "2024.01.01",
+    "to": "2024.06.30",
+    "deposit": 1000,
+    "leverage": 100
+  },
+  "ea": {
+    "name": "Estrategia_Boll_Stoch_ATR_Agresiva_VFinal.ex5",
+    "inputs": {
+      "lot_size": 0.10,
+      "atrPeriod": 14
+    }
+  }
+}
+```
+
+Para optimizaciones con Optuna agrega el bloque `search`:
+
+```json
+  "search": {
+    "space": {
+      "lot_size": ["choice", [0.05, 0.10, 0.15]],
+      "atrMultiplier": ["float", 1.0, 4.0]
+    },
+    "sampler": "tpe"
+  }
+```
+
+- **TPE (por defecto)**: Omite `sampler` o usa `"tpe"` para exploración bayesiana.
+- **GridSampler**: Permite barridos exhaustivos declarando todas las combinaciones.
+
+```json
+  "search": {
+    "space": {
+      "lot_size": ["choice", [0.05, 0.10]],
+      "atrMultiplier": ["choice", [1.5, 2.0, 2.5]]
+    },
+    "sampler": {
+      "type": "grid",
+      "search_space": {
+        "lot_size": [0.05, 0.10],
+        "atrMultiplier": [1.5, 2.0, 2.5]
+      }
+    }
+  }
+```
+
+Si omites `search.sampler.search_space`, el optimizador derivará el grid a partir de las variables `choice` definidas en `search.space`.
+
+### Validaciones y smoke tests
+
+- `smoke_test.py`: Ejecuta un ciclo corto verificando lectura de config, despliegue de presets y logging.
+- `python optimizer_v2.py --config <cfg> --single-run --auto-close`: Ejecuta un único backtest y guarda los artefactos en `Common\Files\MT5_SO`.
+- `pytest`: Corre los tests unitarios disponibles (logger).
 
 ---
 
