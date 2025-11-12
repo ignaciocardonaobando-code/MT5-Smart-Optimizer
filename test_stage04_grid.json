@@ -1,0 +1,51 @@
+{
+  "mt5": {
+    "terminal_path": "C:/Program Files/Pepperstone 61421063/terminal64.exe",
+    "terminal_hash": "90A4ECF8BBAA32797A6357A7F44CB384"
+  },
+  "test": {
+    "symbol": "EURUSD",
+    "timeframe": "H1",
+    "model": 1,
+    "from": "2023.01.01",
+    "to": "2025.02.28",
+    "deposit": 1000,
+    "leverage": 100
+  },
+  "ea": {
+    "name": "Estrategia_Boll_Stoch_ATR_Agresiva_VFinal.ex5",
+    "inputs": {
+      "so_run_id": "stage04",
+      "export_trades": true,
+      "bb_period": 20,
+      "bb_deviation": 1.8,
+      "sto_period_k": 14,
+      "sto_period_d": 3,
+      "sto_slowing": 3,
+      "sl_atr_multiplier": 3,
+      "tp_atr_multiplier": 1,
+      "atrMultiplierTrailing": 0.5,
+      "margen_cruce": 0.2,
+      "lot_size": 0.1,
+      "minDistanceToTPMultiplier": 0.5,
+      "allow_one_order_per_symbol": true,
+      "allow_one_order_per_account": false,
+      "atr_period": 14
+    }
+  },
+  "search": {
+    "sampler": "TPE",
+    "space": {
+      "sl_atr_multiplier": [
+        "float",
+        1.0,
+        5.0
+      ],
+      "tp_atr_multiplier": [
+        "float",
+        0.5,
+        3.0
+      ]
+    }
+  }
+}

@@ -171,6 +171,102 @@ Deberías ver la ayuda del optimizador con todas las opciones disponibles.
 4. **Revisar los resultados** exportados por `so_report.mqh`
 5. **Aplicar la mejor combinación** encontrada en tu estrategia
 
+### Proceso de optimización por etapas
+
+El flujo recomendado para optimizar la estrategia **Boll Stoch ATR Agresiva VFinal** se divide en cinco etapas consecutivas. Todos los comandos siguientes se ejecutan desde **PowerShell** en Windows, ajustando rutas y símbolos según tu entorno.
+
+> 📁 **Archivos de configuración incluidos**
+>
+> Cada etapa cuenta con su propio archivo base en la raíz del repositorio:
+>
+> - `test_stage01_grid.json`: búsqueda de timeframe y `sto_period_k`.
+> - `test_stage02_grid.json`: ajuste de `atrMultiplierTrailing` y `margen_cruce`.
+> - `test_stage03_grid.json`: ajuste de `sto_period_d` y `sto_slowing`.
+> - `test_stage04_grid.json`: ajuste de `sl_atr_multiplier` y `tp_atr_multiplier`.
+> - `test_stage05_grid.json`: ajuste de `bb_period` y `bb_deviation`.
+>
+> Duplica el archivo correspondiente por cada activo, cambia `symbol` y cualquier valor fijo necesario (por ejemplo `timeframe`, `sto_period_k`, etc.) y, si deseas identificar los runs en los reportes, modifica también `so_run_id` dentro de `ea.inputs`.
+
+#### Paso 01: Timeframe y Sto_K
+
+1. Duplica `test_stage01_grid.json` por cada activo a optimizar y reemplaza `"symbol": "X"` por el ticker deseado.
+2. Mantén `so_run_id` y, si utilizas un Optuna Storage externo, el `study_name` únicos para cada activo, por ejemplo: `"so_run_id": "stage01_eurusd_2025-11-10"`.
+3. Ejecuta la búsqueda de parámetros:
+   ```powershell
+   python C:\MT5_Smart_Optimizer\optimizer_v2.py `
+     -c C:\MT5_Smart_Optimizer\test_stage01_grid.json `
+     --exe "C:\Program Files\Pepperstone 61421063\terminal64.exe" `
+     --n-trials 60 --n-jobs 1 `
+     --guard-sec 1200 `
+     --auto-close
+   ```
+4. Para revisar los mejores resultados utiliza `top5_from_runs.py` o, preferiblemente, `top5_from_runs_fixed.py`:
+   ```powershell
+   python C:\MT5_Smart_Optimizer\top5_from_runs.py `
+     --base "$env:APPDATA\MetaQuotes\Terminal\Common\Files\MT5_SO" `
+     --out "C:\MT5_Smart_Optimizer\runs\reports\top5_runs.csv" `
+     --top 5 `
+     --assumed_deposit 1000
+
+   python C:\MT5_Smart_Optimizer\top5_from_runs_fixed.py `
+     --base "$env:APPDATA\MetaQuotes\Terminal\Common\Files\MT5_SO" `
+     --out "C:\MT5_Smart_Optimizer\runs\reports\top5_runs.csv" `
+     --top 5 `
+     --assumed_deposit 1000
+   ```
+   Estos scripts generan un ranking y un CSV con métricas clave (profit, profit factor, expected payoff, drawdown, entre otros).
+
+#### Paso 02: Trailing Stop y margen de cruce
+
+1. Toma los dos mejores resultados del paso anterior y fija el `timeframe` y `sto_period_k` (sto_k) correspondientes en `test_stage02_grid.json`.
+2. Ejecuta dos veces la optimización (una por cada combinación seleccionada):
+   ```powershell
+   python C:\MT5_Smart_Optimizer\optimizer_v2.py `
+     -c C:\MT5_Smart_Optimizer\test_stage02_grid.json `
+     --exe "C:\Program Files\Pepperstone 61421063\terminal64.exe" `
+     --n-trials 70 --n-jobs 1 `
+     --guard-sec 1500 `
+     --auto-close
+   ```
+
+#### Paso 03: Sto_D y Sto_S
+
+Utiliza los parámetros fijados anteriormente y busca las mejores combinaciones de `sto_d` y `sto_s`:
+```powershell
+python C:\MT5_Smart_Optimizer\optimizer_v2.py `
+  -c C:\MT5_Smart_Optimizer\test_stage03_grid.json `
+  --exe "C:\Program Files\Pepperstone 61421063\terminal64.exe" `
+  --n-trials 36 --n-jobs 1 `
+  --guard-sec 1200 `
+  --auto-close
+```
+
+#### Paso 04: Stop Loss y Take Profit
+
+```powershell
+python C:\MT5_Smart_Optimizer\optimizer_v2.py `
+  -c C:\MT5_Smart_Optimizer\test_stage04_grid.json `
+  --exe "C:\Program Files\Pepperstone 61421063\terminal64.exe" `
+  --n-trials 50 --n-jobs 1 `
+  --guard-sec 1500 `
+  --auto-close
+```
+
+#### Paso 05: Bollinger Bands
+
+```powershell
+python C:\MT5_Smart_Optimizer\optimizer_v2.py `
+  -c C:\MT5_Smart_Optimizer\test_stage05_grid.json `
+  --exe "C:\Program Files\Pepperstone 61421063\terminal64.exe" `
+  --n-trials 49 --n-jobs 1 `
+  --guard-sec 1500 `
+  --auto-close
+```
+
+#### Validación final
+
+Con la mejor combinación encontrada, ejecuta una corrida directa y guarda los artefactos generados (HTML, PNG y Excel) en la carpeta de resultados elegida, por ejemplo: `C:\MT5_Smart_Optimizer\runs\20251108 EURUSD BEST`.
+
 ---
 
 ## 📊 Resultados Esperados
