@@ -233,6 +233,76 @@ Si omites `search.sampler.search_space`, el optimizador derivará el grid a part
 
 ---
 
+## 🧭 Metodología de optimización por etapas
+
+La Estrategia_Boll_Stoch_ATR_Agresiva_VFinal.ex5 se optimiza con la misma secuencia aplicada en USDCHF, GBPUSD, EURUSD y USDJPY. Cada stage aísla un bloque de parámetros y exige avanzar solo cuando el reporte del stage previo es satisfactorio:
+
+| Stage | Objetivo | Variables y combinaciones |
+|-------|----------|---------------------------|
+| **Stage01** | Validar sensibilidad de %K en timeframes pequeños | timeframes pequeños × sto_period_k |
+| **Stage02** | Sensibilidad de %K en timeframes grandes | timeframes grandes × sto_period_k |
+| **Stage03** | Ancho de banda de Bollinger | bb_period × bb_deviation |
+| **Stage04** | Confirmación Stochastic | sto_period_d × sto_slowing |
+| **Stage05** | Rango de SL/TP | sl_atr_multiplier × tp_atr_multiplier |
+| **Stage06** | Trailing + margen | atrMultiplierTrailing × margen_cruce |
+| **Stage07A** | Micro-ajuste BB | (bb_period ±1) × (bb_deviation ±0.2) |
+| **Stage07B** | Micro-ajuste SL/TP | micro SL × micro TP |
+| **Stage07C** | Micro-ajuste TS + margen | micro TS × micro margen_cruce |
+| **Stage07D** | Protección avanzada | minDistanceToTPMultiplier × parámetro opcional |
+
+Principios operativos por stage:
+
+- **Modelo de simulación**: model = 4 (Cada tick con ticks reales) en todo el flujo.
+- **Ventana temporal**: 2022.01.01 → 2025.06.30.
+- **Capital base**: deposit = 1000, leverage = 100.
+- **Estrategia**: `Estrategia_Boll_Stoch_ATR_Agresiva_VFinal.ex5`, manteniendo nombres y campos JSON homogéneos (`test_stageXX_<activo>.json`).
+- **Ejecución**: 1 archivo JSON por stage, avance condicionado al análisis del reporte del stage previo, y siempre se publican comandos PowerShell (ejecución y Top 5).
+
+---
+
+## 🎯 Caso activo: XXXXXX (Stage01)
+
+> Flujo idéntico al aplicado en USDCHF, GBPUSD, EURUSD y USDJPY, con staging progresivo hasta Stage07D. Se inicia con 60 combinaciones en timeframes pequeños.
+
+**Configuración base del activo**
+
+- Periodo: **2022.01.01 → 2025.06.30**
+- Modelo: **4** (Cada tick a base de ticks reales)
+- Depósito / Apalancamiento: **1000 / 100**
+- EA: **Estrategia_Boll_Stoch_ATR_Agresiva_VFinal.ex5**
+- Archivo Stage01: `test_stage01_xxxxxx.json`
+
+**Stage01 – Timeframes pequeños × %K (60 pruebas)**
+
+- Timeframes: M1, M2, M5, M10, M15, M20.
+- `sto_period_k`: 5 → 14.
+- Sampler: Grid (6 × 10 = 60 pruebas).
+- `so_run_id`: `stage01_xxxxxx` para aislar artefactos en `MT5_SO/stage01_xxxxxx`.
+
+Comando PowerShell (ejecución 60 pruebas):
+
+```powershell
+python optimizer_v2.py --config test_stage01_xxxxxx.json --n-trials 60 --auto-close
+```
+
+Comando PowerShell (Top 5 por `total_net_profit`):
+
+```powershell
+$runDir = "$env:APPDATA\MetaQuotes\Terminal\Common\Files\MT5_SO\stage01_xxxxxx"
+Get-ChildItem -Path $runDir -Filter report.json -Recurse |
+  ForEach-Object {
+    $r = Get-Content $_.FullName | ConvertFrom-Json
+    $r | Add-Member -NotePropertyName Source -NotePropertyValue $_.DirectoryName -PassThru
+  } |
+  Sort-Object -Property total_net_profit -Descending |
+  Select-Object -First 5 -Property timeframe, total_net_profit, profit_factor, max_dd_rel_pct, Source |
+  Format-Table -AutoSize
+```
+
+Al finalizar Stage01, interpretar el reporte de consola y los `report.json` exportados; únicamente avanzar a Stage02 si la robustez (profit factor, DD relativo, consistencia entre timeframes) cumple los umbrales usados en activos previos.
+
+---
+
 ## 📊 Resultados Esperados
 
 Al finalizar, el optimizador generará:
