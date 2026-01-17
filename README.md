@@ -16,6 +16,7 @@ Este optimizador automatiza el proceso de búsqueda de los mejores parámetros p
 |---------|-------------|
 | `optimizer_v2.py` | Script principal en Python que ejecuta la optimización usando Optuna |
 | `Estrategia_Boll_Stoch_ATR_Agresiva_VFinal.ex5` | Estrategia compilada de MT5 (Expert Advisor) a optimizar |
+| `IC.mq5` | Estrategia IC (Ignacio Cardona) basada en VFinal con 2 órdenes por símbolo y espera mínima de barras para la segunda entrada |
 | `so_report.mqh` | Librería MQL5 para exportar resultados del backtesting |
 | `optuna_h4_fast.json` | Archivo de configuración con parámetros para optimización rápida en H4 |
 | `test_single_h1_structured.json` | Archivo de configuración para pruebas estructuradas en H1 |
