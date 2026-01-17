@@ -28,7 +28,7 @@ input double margen_cruce                   = 0.5;
 //=============================//
 //   PARÁMETROS GENERALES      //
 input double minDistanceToTPMultiplier      = 0.5;
-input bool   allow_one_order_per_symbol     = true;
+input bool   allow_one_order_per_symbol     = false;
 input bool   allow_one_order_per_account    = false;
 input int    atr_period                     = 14;
 
@@ -193,34 +193,43 @@ void ExecuteOrder(const string type, const double price, const double sl, const 
 //     TRAILING POR ATR        //
 void ManageTrailingStop()
 {
-  if(!PositionSelect(_Symbol)) return;
-
   double v[1]; if(CopyBuffer(atr_handle,0,0,1,v)<=0 || v[0]<=0) return;
   double atr = v[0];
 
   double bid = SymbolInfoDouble(_Symbol,SYMBOL_BID);
   double ask = SymbolInfoDouble(_Symbol,SYMBOL_ASK);
-  double slc = PositionGetDouble(POSITION_SL);
-  double tp  = PositionGetDouble(POSITION_TP);
-  long   typ = PositionGetInteger(POSITION_TYPE);
-  double op  = PositionGetDouble(POSITION_PRICE_OPEN);
-
   double mind = atr*minDistanceToTPMultiplier;
-  double nsl;
 
-  if(typ==POSITION_TYPE_BUY)
+  // Aplicar trailing a TODAS las posiciones del símbolo.
+  for(int i=0;i<PositionsTotal();i++)
   {
-    if(bid<=op) return;
-    nsl = NormalizeDouble(bid - atr*atrMultiplierTrailing, _Digits);
-    if( (slc<=0 || nsl>slc) && (tp-nsl)>mind && nsl>op )
-      if(trade.PositionModify(_Symbol,nsl,tp)) Print("🔁 TS (BUY) actualizado: SL =", nsl);
-  }
-  else if(typ==POSITION_TYPE_SELL)
-  {
-    if(ask>=op) return;
-    nsl = NormalizeDouble(ask + atr*atrMultiplierTrailing, _Digits);
-    if( (slc<=0 || nsl<slc) && (nsl-tp)>mind && nsl<op )
-      if(trade.PositionModify(_Symbol,nsl,tp)) Print("🔁 TS (SELL) actualizado: SL =", nsl);
+    ulong tk = PositionGetTicket(i);
+    if(!PositionSelectByTicket(tk)) continue;
+
+    string sym = PositionGetString(POSITION_SYMBOL);
+    if(sym != _Symbol) continue;
+
+    double slc = PositionGetDouble(POSITION_SL);
+    double tp  = PositionGetDouble(POSITION_TP);
+    long   typ = PositionGetInteger(POSITION_TYPE);
+    double op  = PositionGetDouble(POSITION_PRICE_OPEN);
+
+    double nsl;
+
+    if(typ==POSITION_TYPE_BUY)
+    {
+      if(bid<=op) continue;
+      nsl = NormalizeDouble(bid - atr*atrMultiplierTrailing, _Digits);
+      if( (slc<=0 || nsl>slc) && (tp-nsl)>mind && nsl>op )
+        if(trade.PositionModify(tk,nsl,tp)) Print("🔁 TS (BUY) actualizado: SL =", nsl);
+    }
+    else if(typ==POSITION_TYPE_SELL)
+    {
+      if(ask>=op) continue;
+      nsl = NormalizeDouble(ask + atr*atrMultiplierTrailing, _Digits);
+      if( (slc<=0 || nsl<slc) && (nsl-tp)>mind && nsl<op )
+        if(trade.PositionModify(tk,nsl,tp)) Print("🔁 TS (SELL) actualizado: SL =", nsl);
+    }
   }
 }
 
