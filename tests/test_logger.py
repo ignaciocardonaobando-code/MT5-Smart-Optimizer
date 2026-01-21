@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 """Tests unitarios para logger.py"""
-import pytest
 import os
-import tempfile
-import shutil
+import sys
 import logging
+import shutil
+import tempfile
+from pathlib import Path
+
+import pytest
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from logger import OptimizerLogger, get_logger
 
 
@@ -13,15 +21,24 @@ class TestOptimizerLogger:
     
     def setup_method(self):
         """Setup antes de cada test"""
+        self.logger_name = "TestLogger"
+        existing_logger = logging.getLogger(self.logger_name)
+        for handler in list(existing_logger.handlers):
+            existing_logger.removeHandler(handler)
+            handler.close()
         self.test_log_dir = tempfile.mkdtemp()
         self.logger = OptimizerLogger(
-            name="TestLogger",
+            name=self.logger_name,
             log_dir=self.test_log_dir,
             level=logging.DEBUG
         )
-    
+
     def teardown_method(self):
         """Cleanup después de cada test"""
+        existing_logger = logging.getLogger(self.logger_name)
+        for handler in list(existing_logger.handlers):
+            existing_logger.removeHandler(handler)
+            handler.close()
         if os.path.exists(self.test_log_dir):
             shutil.rmtree(self.test_log_dir)
     
