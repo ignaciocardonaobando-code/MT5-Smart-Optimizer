@@ -1,0 +1,20 @@
+{
+  "mt5": {
+    "terminal_path": "C:\\Program Files\\MetaTrader 5\\terminal64.exe",
+    "terminal_hash": "90A4D2F3C1E8B7A9F5D2C4E6B8A0F2D4",
+    "datadir": null
+  },
+  "test": {
+    "symbol": "EURUSD",
+    "timeframe": "H1",
+    "model": 0,
+    "from": "2022.01.01",
+    "to": "2025.06.30",
+    "deposit": 1000,
+    "leverage": 100
+  },
+  "ea": {
+    "name": "Estrategia_Boll_Stoch_ATR_Agresiva_VFinal.ex5",
+    "inputs": {}
+  }
+}
